@@ -1,0 +1,10 @@
+{
+  "trailingComma": "es5",
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": false,
+  "blankLine": "always",
+  "objectWrap": "collapse",
+  "bracketSameLine": false,
+  "arrowParens": "always"
+}
