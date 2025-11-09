@@ -30,6 +30,8 @@ import { updateEvento, generateTickets } from "@/app/api/eventos/update";
 import createEvento from "@/app/api/eventos/create";
 import LocationPinIcon from "@mui/icons-material/LocationPin";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import deleteEvento from "@/app/api/eventos/delete";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const eventSchema = z.object({
   nome: z.string().min(1, "Nome obrigatório"),
@@ -173,6 +175,27 @@ export default function EventosPage() {
     setOpenConfirm(true);
   };
 
+  async function removeEvento(participanteId: number) {
+    const result = await deleteEvento(participanteId);
+
+    result.success
+      ? showSnackbar("Evento excluido", "success")
+      : showSnackbar("Erro ao excluir evento", "error");
+
+    if (result.success) load();
+  }
+
+  const handleDelete = (e: Evento) => {
+    setConfirmTitle("Gerar tickets");
+    setConfirmMessage(`Tem certeza que deseja excluir o evento "${e.nome}"?`);
+
+    setConfirmCallback(() => async () => {
+      await removeEvento(e.id);
+    });
+
+    setOpenConfirm(true);
+  };
+
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
       <ConfirmDialog
@@ -227,6 +250,9 @@ export default function EventosPage() {
                         )}
                         <IconButton onClick={() => handleOpenEdit(ev)}>
                           <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDelete(ev)}>
+                          <DeleteIcon />
                         </IconButton>
                       </>
                     }

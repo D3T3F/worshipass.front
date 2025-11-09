@@ -14,7 +14,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Paper,
   Divider,
   Stack,
@@ -35,9 +34,11 @@ import findParticipantes from "@/app/api/participantes/find";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import createParticipante from "@/app/api/participantes/create";
 import { Participante } from "@/models/participante.model";
-import InputMask from "react-input-mask";
 import { InputDefault } from "@/components/inputs/InputDefault";
 import updateParticipante from "@/app/api/participantes/update";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import deleteParticipante from "@/app/api/participantes/delete";
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const participantSchema = z.object({
   nome: z
@@ -78,6 +79,13 @@ export default function ParticipantesPage() {
   const [editing, setEditing] = useState<Participante | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmCallback, setConfirmCallback] = useState<() => Promise<void>>(
+    async () => {}
+  );
+
   const { showSnackbar } = useSnackbar();
 
   const {
@@ -93,20 +101,20 @@ export default function ParticipantesPage() {
       telefone: "",
     },
   });
+  
+  const load = async () => {
+    setLoading(true);
+
+    const result = await findParticipantes();
+
+    if (!result.success) showSnackbar("Erro ao buscar participantes", "error");
+
+    setParticipants(result.data);
+
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-
-      const result = await findParticipantes();
-
-      if (!result.success)
-        showSnackbar("Erro ao buscar participantes", "error");
-
-      setParticipants(result.data);
-
-      setLoading(false);
-    };
     load();
   }, []);
 
@@ -134,6 +142,29 @@ export default function ParticipantesPage() {
       telefone: p.telefone,
     });
     setOpenDialog(true);
+  };
+
+  async function removeParticipante(participanteId: number) {
+    const result = await deleteParticipante(participanteId);
+
+    result.success
+      ? showSnackbar("Participante excluido", "success")
+      : showSnackbar("Erro ao excluir participante", "error");
+
+    if (result.success) load();
+  }
+
+  const handleDelete = (p: Participante) => {
+    setConfirmTitle("Gerar tickets");
+    setConfirmMessage(
+      `Tem certeza que deseja excluir o participante "${p.nomeCompleto}"?`
+    );
+
+    setConfirmCallback(() => async () => {
+      await removeParticipante(p.id);
+    });
+
+    setOpenConfirm(true);
   };
 
   const onSubmit = handleSubmit(async (data) => {
@@ -191,6 +222,14 @@ export default function ParticipantesPage() {
 
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
+      <ConfirmDialog
+        open={openConfirm}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmText="Confirmar"
+        onClose={() => setOpenConfirm(false)}
+        onConfirm={confirmCallback}
+      />
       <Box
         display="flex"
         justifyContent="space-between"
@@ -226,6 +265,9 @@ export default function ParticipantesPage() {
                         </IconButton>
                         <IconButton onClick={() => handleOpenEdit(p)}>
                           <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDelete(p)}>
+                          <DeleteIcon />
                         </IconButton>
                       </>
                     }
