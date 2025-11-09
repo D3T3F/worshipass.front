@@ -1,10 +1,10 @@
 import { AxiosError } from "axios";
 import apiClient from "../axios.client";
 import Result from "@/models/result.model";
-import { Participante } from "@/models/participante.model";
+import { Evento } from "@/models/evento.model";
 
-export default async function createParticipante(
-  data: Participante
+export default async function createEvento(
+  data: Evento
 ): Promise<Result<{ message: string }>> {
   let result: Result<{ message: string }> = {
     success: false,
@@ -12,15 +12,15 @@ export default async function createParticipante(
   };
 
   try {
-    const response = await apiClient.post("/participantes", data);
+    const response = await apiClient.post("/eventos", data);
 
     result = {
       success: response.status === 201,
       data: {
         message:
           response.status === 201
-            ? "Participante criado com sucesso!"
-            : "Erro ao criar participante",
+            ? "Evento criado com sucesso!"
+            : "Erro ao criar evento",
       },
     };
 
@@ -33,7 +33,7 @@ export default async function createParticipante(
           e?.response?.data?.message ??
           e?.response?.data ??
           e?.message ??
-          "Erro ao criar participante",
+          "Erro ao criar evento",
       },
     };
 
