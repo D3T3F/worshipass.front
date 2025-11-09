@@ -1,0 +1,372 @@
+"use client";
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  Collapse,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Paper,
+  Divider,
+  Stack,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
+import * as z from "zod";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import findParticipantes from "@/app/api/participantes/find";
+import { useSnackbar } from "@/contexts/SnackbarContext";
+import createParticipante from "@/app/api/participantes/create";
+import { Participante } from "@/models/participante.model";
+import InputMask from "react-input-mask";
+import { InputDefault } from "@/components/inputs/InputDefault";
+import updateParticipante from "@/app/api/participantes/update";
+
+const participantSchema = z.object({
+  nome: z
+    .string()
+    .min(1, "Nome obrigatório")
+    .regex(
+      /^([A-ZÁÉÍÓÚÃÕÂÊÎÔÛ][a-záéíóúãõâêîôûç]+)(\s[A-ZÁÉÍÓÚÃÕÂÊÎÔÛ][a-záéíóúãõâêîôûç]+)*$/,
+      "O nome deve começar com letra maiúscula e conter apenas letras válidas"
+    ),
+
+  email: z.email("E-mail inválido").min(1, "E-mail obrigatório"),
+
+  telefone: z
+    .string()
+    .regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, "Telefone inválido"),
+});
+type ParticipantForm = z.infer<typeof participantSchema>;
+
+const maskTelefone = (value: string) => {
+  const nums = value.replace(/\D/g, "");
+
+  if (nums.length <= 10)
+    return nums
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d)/, "$1-$2")
+      .slice(0, 14);
+
+  return nums
+    .replace(/^(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2")
+    .slice(0, 15);
+};
+
+export default function ParticipantesPage() {
+  const [participants, setParticipants] = useState<Participante[]>([]);
+  const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editing, setEditing] = useState<Participante | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const { showSnackbar } = useSnackbar();
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm<ParticipantForm>({
+    resolver: zodResolver(participantSchema),
+    defaultValues: {
+      nome: "",
+      email: "",
+      telefone: "",
+    },
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+
+      const result = await findParticipantes();
+
+      if (!result.success)
+        showSnackbar("Erro ao buscar participantes", "error");
+
+      setParticipants(result.data);
+
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const handleToggleTickets = (id: number) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleOpenCreate = () => {
+    setEditing(null);
+    reset({
+      nome: "",
+      email: "",
+      telefone: "",
+    });
+    setOpenDialog(true);
+  };
+
+  const handleOpenEdit = (p: Participante) => {
+    setEditing(p);
+    reset({
+      nome: p.nomeCompleto,
+      email: p.email,
+      telefone: p.telefone,
+    });
+    setOpenDialog(true);
+  };
+
+  const onSubmit = handleSubmit(async (data) => {
+    const newUser: Participante = {
+      id: editing
+        ? editing.id
+        : participants.length
+        ? Math.max(...participants.map((p) => p.id)) + 1
+        : 1,
+      nomeCompleto: data.nome,
+      email: data.email,
+      telefone: data.telefone,
+      tickets: editing?.tickets ?? [],
+    };
+
+    const result = editing
+      ? await updateParticipante(newUser)
+      : await createParticipante(newUser);
+
+    result.success
+      ? showSnackbar(
+          `Participante ${editing ? "editado" : "criado"}!`,
+          "success"
+        )
+      : showSnackbar(
+          `Erro ao ${editing ? "editar" : "criar"} participante!`,
+          "error"
+        );
+
+    if (!result.success) return;
+
+    if (editing) {
+      setParticipants((prev) =>
+        prev.map((p) =>
+          p.id === editing.id
+            ? {
+                ...p,
+                nomeCompleto: data.nome,
+                email: data.email,
+                telefone: data.telefone,
+              }
+            : p
+        )
+      );
+
+      setEditing(null);
+      setOpenDialog(false);
+
+      return;
+    }
+
+    setParticipants((prev) => [...prev, newUser]);
+    setOpenDialog(false);
+  });
+
+  return (
+    <Container sx={{ mt: 4, mb: 4 }}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        mb={2}
+        alignItems="center"
+      >
+        <Typography variant="h3">Participantes</Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleOpenCreate}
+        >
+          Adicionar participante
+        </Button>
+      </Box>
+
+      <Paper variant="outlined">
+        {loading ? (
+          <Box p={2}>
+            <Typography>Carregando participantes...</Typography>
+          </Box>
+        ) : (
+          <List>
+            {participants.map((p, i) => {
+              const isExpanded = expandedIds.includes(p.id);
+              return (
+                <React.Fragment key={p.id}>
+                  <ListItem
+                    secondaryAction={
+                      <>
+                        <IconButton onClick={() => handleToggleTickets(p.id)}>
+                          {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        </IconButton>
+                        <IconButton onClick={() => handleOpenEdit(p)}>
+                          <EditIcon />
+                        </IconButton>
+                      </>
+                    }
+                  >
+                    <ListItemText
+                      primary={p.nomeCompleto}
+                      secondary={
+                        <>
+                          <span>{p.email}</span>
+                          <span style={{ marginLeft: 16 }}>{p.telefone}</span>
+                        </>
+                      }
+                    />
+                  </ListItem>
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                    <Box sx={{ pl: 4, pr: 2, pb: 2 }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Tickets de {p.nomeCompleto}
+                      </Typography>
+                      {p.tickets && p.tickets.length ? (
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Evento</TableCell>
+                              <TableCell>Data Evento</TableCell>
+                              <TableCell>Status</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {p.tickets.map((t) => (
+                              <TableRow key={t.id}>
+                                <TableCell>{t.evento?.nome}</TableCell>
+                                <TableCell>
+                                  {t.evento?.dataEvento?.toUTCString()}
+                                </TableCell>
+                                <TableCell>{t.status}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Nenhum ticket para este participante.
+                        </Typography>
+                      )}
+                    </Box>
+                  </Collapse>
+                  {i !== participants.length - 1 && <Divider />}
+                </React.Fragment>
+              );
+            })}
+            {!participants.length && !loading && (
+              <Box p={2}>
+                <Typography>Nenhum participante encontrado.</Typography>
+              </Box>
+            )}
+          </List>
+        )}
+      </Paper>
+
+      <Dialog
+        open={openDialog}
+        onClose={() => {
+          setOpenDialog(false);
+          setEditing(null);
+        }}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {editing ? "Editar participante" : "Novo participante"}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={4} mt={1}>
+            <Controller
+              name="nome"
+              control={control}
+              render={({ field: { onChange, value, ref }, fieldState }) => (
+                <InputDefault
+                  title="Nome"
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  error={!!fieldState.error}
+                  errorMessage={fieldState.error?.message}
+                  ref={ref}
+                />
+              )}
+            />
+
+            <Controller
+              name="email"
+              control={control}
+              render={({ field: { onChange, value, ref }, fieldState }) => (
+                <InputDefault
+                  title="Email"
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  error={!!fieldState.error}
+                  errorMessage={fieldState.error?.message}
+                  ref={ref}
+                />
+              )}
+            />
+
+            <Controller
+              name="telefone"
+              control={control}
+              render={({ field: { onChange, value, ref }, fieldState }) => (
+                <InputDefault
+                  title="Telefone"
+                  value={value || ""}
+                  onChange={(e) => {
+                    const masked = maskTelefone(e.target.value);
+                    onChange(masked);
+                  }}
+                  error={!!fieldState.error}
+                  errorMessage={fieldState.error?.message}
+                  ref={ref}
+                />
+              )}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setOpenDialog(false);
+              setEditing(null);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={onSubmit}
+            variant="contained"
+            disabled={isSubmitting}
+          >
+            Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Container>
+  );
+}

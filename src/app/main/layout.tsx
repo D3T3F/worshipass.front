@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "../api/auth/[...nextauth]/authOptions";
 import { jwtVerify } from "@/utils/jwe";
 import { signOut } from "next-auth/react";
+import Header from "@/components/Header";
 
 export default async function MainLayout({
   children,
@@ -19,5 +20,10 @@ export default async function MainLayout({
 
   if (validated.error) await signOut({ callbackUrl: "/login" });
 
-  return <>{children}</>;
+  return (
+    <main>
+      <Header />
+      {children}
+    </main>
+  );
 }

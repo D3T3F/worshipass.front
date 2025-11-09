@@ -196,6 +196,7 @@ const components = {
   MuiAppBar: {
     styleOverrides: {
       root: {
+        backgroundColor: COLORS.PRIMARY.MAIN,
         boxShadow: "0px 1px 4px rgba(0, 0, 0, 0.1)",
       },
     },

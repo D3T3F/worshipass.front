@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  height: 100%;
 }
 
 @theme inline {
@@ -14,13 +15,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    height: 100%;
     --background: #0a0a0a;
     --foreground: #ededed;
   }
 }
 
 body {
+  height: 100%;
   background: var(--background);
   color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+main {
+  width: 100%;
+  height: 100%;
+  background-color: #F1F2F6;
   font-family: Arial, Helvetica, sans-serif;
 }
