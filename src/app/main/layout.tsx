@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "../api/auth/[...nextauth]/authOptions";
-import { jwtVerify } from "@/lib/jwe";
+import { jwtVerify } from "@/utils/jwe";
 import { signOut } from "next-auth/react";
 
 export default async function MainLayout({

@@ -1,9 +1,9 @@
 import axios from "axios";
 import { getSession, signOut } from "next-auth/react";
 
-const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
+const apiClient = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
 
-api.interceptors.request.use(async (config) => {
+apiClient.interceptors.request.use(async (config) => {
   const session = await getSession();
 
   if (session?.user && (session as any).accessToken)
@@ -12,7 +12,7 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-api.interceptors.response.use(
+apiClient.interceptors.response.use(
   (r) => r,
   async (error) => {
     if (error?.response?.status === 401)
@@ -20,4 +20,4 @@ api.interceptors.response.use(
   }
 );
 
-export default api;
+export default apiClient;

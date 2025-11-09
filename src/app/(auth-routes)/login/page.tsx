@@ -12,11 +12,10 @@ import * as zod from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import Image from "next/image";
-import { useThemeMode } from "@/theme/ThemeProvider";
 import { InputDefault } from "@/components/inputs/InputDefault";
+import { useSnackbar } from "@/contexts/SnackbarContext";
 
 const schema = zod.object({
   user: zod.string().min(1, "Usuario obrigatório!"),
@@ -25,6 +24,9 @@ const schema = zod.object({
 
 export default function LoginPage() {
   const [passwordVisible, setPasswordVisible] = useState<boolean>(false);
+
+  const { showSnackbar } = useSnackbar();
+  const router = useRouter();
 
   const { control, handleSubmit, setError } = useForm({
     resolver: zodResolver(schema),
@@ -40,18 +42,20 @@ export default function LoginPage() {
   }
 
   async function onSubmit(data: any) {
-    signIn("credentials", { ...data, });
+    signIn("credentials", { ...data });
   }
 
   useEffect(() => {
     if (loginError === "CredentialsSignin") {
-      setError("user", { message: "" }, { shouldFocus: true });
+      const credentialsError = "Usuario ou senha inválidos.";
 
-      setError("password", { message: "" });
+      showSnackbar(credentialsError, "error")
+
+      setError("user", { message: credentialsError }, { shouldFocus: true });
+
+      setError("password", { message: credentialsError });
     }
   }, [loginError]);
-
-  const theme = useThemeMode();
 
   return (
     <Box
@@ -63,17 +67,18 @@ export default function LoginPage() {
       }}
     >
       <Box
-        sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "20px",
+        }}
       >
-        <Box sx={{width: 300, height: 70, position: "relative", userSelect: "none"}}>
-          <Image
-            src={`/images/inv-manager-${theme.mode}.svg`}
-            fill
-            alt="logo"
-            className="object-cover"
-          />
-        </Box>
-        <Typography variant="h1" sx={{ userSelect: "none" }}>
+        <Typography variant="h1" color="primary" sx={{ userSelect: "none" }}>
+          WorshiPass
+        </Typography>
+        <Typography variant="h2" sx={{ userSelect: "none" }}>
           Login
         </Typography>
       </Box>
@@ -94,7 +99,7 @@ export default function LoginPage() {
                 <InputDefault
                   title="Usuario"
                   value={value}
-                  onChange={onChange}
+                  onChange={(e) => onChange(e.target.value.toLowerCase())}
                   error={!!fieldState.error}
                   errorMessage={fieldState.error?.message}
                   ref={ref}
@@ -128,26 +133,22 @@ export default function LoginPage() {
             )}
           />
         </Box>
-        <Typography
-          color="primary"
+        <Box
           sx={{
-            userSelect: "none",
-            cursor: "pointer",
-            marginTop: "24px",
-            ":hover": {
-              textDecoration: "underline",
-            },
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            marginTop: "42px",
+            gap: "20px"
           }}
         >
-          Esqueceu a senha?
-        </Typography>
-        <Button
-          type="submit"
-          variant="contained"
-          sx={{ marginTop: "42px", height: "42px" }}
-        >
-          <Typography variant="h6">Entrar</Typography>
-        </Button>
+          <Button type="submit" variant="contained" sx={{ height: "42px" }}>
+            <Typography variant="h6">Entrar</Typography>
+          </Button>
+          <Button variant="outlined" sx={{ height: "42px" }} onClick={() => router.push("/signup")}>
+            <Typography variant="h6">Criar conta</Typography>
+          </Button>
+        </Box>
       </form>
     </Box>
   );

@@ -1,21 +1,17 @@
 import { JWTPayload, jwtDecrypt } from "jose";
-import crypto from "node:crypto";
 
-function getA256GCMKey(): Uint8Array {
+function getBase64Key(): Uint8Array {
   const secret = process.env.NEXTAUTH_SECRET as string;
 
-  return crypto.createHash("sha256").update(secret, "utf8").digest();
+  return Buffer.from(secret, "base64");
 }
 
 export async function jwtVerify(
   token: string
 ): Promise<JWTPayload | { error: string }> {
-  const key = getA256GCMKey();
+  const key = getBase64Key();
 
-  const { payload } = await jwtDecrypt(token, key, {
-    issuer: process.env.JWT_ISSUER,
-    audience: process.env.JWT_AUDIENCE,
-  });
+  const { payload } = await jwtDecrypt(token, key);
 
   if (payload.exp && Date.now() >= payload.exp * 1000)
     return { error: "Sessão expirada." };

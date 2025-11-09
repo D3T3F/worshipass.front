@@ -2,11 +2,17 @@
 
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { SessionProvider } from "next-auth/react";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
+import { SnackbarProvider } from "@/contexts/SnackbarContext";
 
 export default function Provider({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <ThemeProvider>{children}</ThemeProvider>
-    </SessionProvider>
+    <AppRouterCacheProvider>
+      <SessionProvider>
+        <ThemeProvider>
+          <SnackbarProvider>{children}</SnackbarProvider>
+        </ThemeProvider>
+      </SessionProvider>
+    </AppRouterCacheProvider>
   );
 }

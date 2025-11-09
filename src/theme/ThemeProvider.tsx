@@ -34,7 +34,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [mode, setMode] = useState<PaletteMode>("dark");
+  const [mode, setMode] = useState<PaletteMode>("light");
 
   useEffect(() => {
     const theme = localStorage.getItem("theme") as PaletteMode;

@@ -25,9 +25,7 @@ export const authOptions: NextAuthOptions = {
             }
           );
 
-		  console.log(response);
-
-          const data = (await response.json()).body;
+          const data = await response.json();
 
           if (!data?.token || !data?.user?.id) return null;
 
