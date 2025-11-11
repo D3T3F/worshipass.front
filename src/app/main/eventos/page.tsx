@@ -35,7 +35,7 @@ import { InputDefault } from "@/components/inputs/InputDefault";
 import { Evento } from "@/models/evento.model";
 import { generateTickets } from "@/app/api/eventos/update";
 import LocationPinIcon from "@mui/icons-material/LocationPin";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -186,7 +186,7 @@ export default function EventosPage() {
 
   const handleDefinirTickets = (evento: Evento) => {
     setConfirmTitle("Gerar tickets");
-    
+
     setConfirmMessage(
       `Tem certeza que deseja gerar todos os tickets para o evento "${evento.nome}"?`
     );

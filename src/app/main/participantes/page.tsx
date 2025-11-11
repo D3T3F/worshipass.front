@@ -33,9 +33,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import { Participante } from "@/models/participante.model";
 import { InputDefault } from "@/components/inputs/InputDefault";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import DeleteIcon from '@mui/icons-material/Delete';
+import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
+import { FormDialog } from "@/components/dialogs/FormDialog";
 
 const participantSchema = z.object({
   nome: z
@@ -98,7 +99,7 @@ export default function ParticipantesPage() {
       telefone: "",
     },
   });
-  
+
   const load = async () => {
     setLoading(true);
 
@@ -177,9 +178,7 @@ export default function ParticipantesPage() {
       tickets: editing?.tickets ?? [],
     };
 
-    const result = editing
-      ? await update(newUser)
-      : await createOne(newUser);
+    const result = editing ? await update(newUser) : await createOne(newUser);
 
     result.success
       ? showSnackbar(
@@ -325,87 +324,22 @@ export default function ParticipantesPage() {
         )}
       </Paper>
 
-      <Dialog
-        open={openDialog}
+      <FormDialog
+        schema={participantSchema}
+        inputs={[
+          { name: "nome", label: "Nome" },
+          { name: "email", label: "Email" },
+          { name: "telefone", label: "Telefone", mask: maskTelefone },
+        ]}
+        isOpen={openDialog}
+        isEditing={!!editing}
+        initialValues={editing as any}
         onClose={() => {
           setOpenDialog(false);
           setEditing(null);
         }}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>
-          {editing ? "Editar participante" : "Novo participante"}
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={4} mt={1}>
-            <Controller
-              name="nome"
-              control={control}
-              render={({ field: { onChange, value, ref }, fieldState }) => (
-                <InputDefault
-                  title="Nome"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                  ref={ref}
-                />
-              )}
-            />
-
-            <Controller
-              name="email"
-              control={control}
-              render={({ field: { onChange, value, ref }, fieldState }) => (
-                <InputDefault
-                  title="Email"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                  ref={ref}
-                />
-              )}
-            />
-
-            <Controller
-              name="telefone"
-              control={control}
-              render={({ field: { onChange, value, ref }, fieldState }) => (
-                <InputDefault
-                  title="Telefone"
-                  value={value || ""}
-                  onChange={(e) => {
-                    const masked = maskTelefone(e.target.value);
-                    onChange(masked);
-                  }}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                  ref={ref}
-                />
-              )}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenDialog(false);
-              setEditing(null);
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={onSubmit}
-            variant="contained"
-            disabled={isSubmitting}
-          >
-            Salvar
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSubmit={onSubmit}
+      />
     </Container>
   );
 }
