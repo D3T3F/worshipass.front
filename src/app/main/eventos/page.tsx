@@ -15,6 +15,14 @@ import {
   Stack,
   Paper,
   Divider,
+  Collapse, // Importado
+  Table, // Importado
+  TableBody, // Importado
+  TableCell, // Importado
+  TableHead, // Importado
+  TableRow, // Importado
+  TextField, // Importado para o filtro
+  MenuItem, // Importado para o filtro
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -32,12 +40,15 @@ import LocationPinIcon from "@mui/icons-material/LocationPin";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import deleteEvento from "@/app/api/eventos/delete";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess"; // Importado
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"; // Importado
+import { statusTicket } from "@/models/ticket.model"; // Importado
 
 const eventSchema = z.object({
   nome: z.string().min(1, "Nome obrigatório"),
-  dataEvento: z.date("Data obrigatória"),
+  dataEvento: z.date({ message: "Data obrigatória" }),
   capacidadeTotal: z
-    .number("Capacidade deve ser número")
+    .number({ message: "Capacidade deve ser número" })
     .min(1, "Capacidade obrigatória"),
   local: z.string().min(1, "Local obrigatório"),
 });
@@ -49,6 +60,11 @@ export default function EventosPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editing, setEditing] = useState<Evento | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // --- NOVOS ESTADOS ---
+  const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("Todos");
+  // --------------------
 
   const [openConfirm, setOpenConfirm] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState("");
@@ -77,12 +93,10 @@ export default function EventosPage() {
   const load = async () => {
     setLoading(true);
     const result = await findEventos();
-
     setLoading(false);
 
     if (!result.success) {
       showSnackbar("Erro ao buscar eventos", "error");
-
       return;
     }
 
@@ -92,6 +106,14 @@ export default function EventosPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // --- NOVA FUNÇÃO ---
+  const handleToggleTickets = (id: number) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+  // --------------------
 
   const handleOpenCreate = () => {
     setEditing(null);
@@ -186,7 +208,7 @@ export default function EventosPage() {
   }
 
   const handleDelete = (e: Evento) => {
-    setConfirmTitle("Gerar tickets");
+    setConfirmTitle("Excluir evento");
     setConfirmMessage(`Tem certeza que deseja excluir o evento "${e.nome}"?`);
 
     setConfirmCallback(() => async () => {
@@ -235,11 +257,24 @@ export default function EventosPage() {
                 (!ev.tickets || ev.tickets.length === 0) &&
                 new Date(ev.dataEvento) >= hoje;
 
+              // --- LÓGICA DE FILTRO ---
+              const isExpanded = expandedIds.includes(ev.id);
+              const filteredTickets =
+                ev.tickets?.filter(
+                  (t) => statusFilter === "Todos" || t.status === statusFilter
+                ) ?? [];
+              // -------------------------
+
               return (
                 <React.Fragment key={ev.id}>
                   <ListItem
                     secondaryAction={
                       <>
+                        {/* --- BOTÃO DE EXPANDIR --- */}
+                        <IconButton onClick={() => handleToggleTickets(ev.id)}>
+                          {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        </IconButton>
+                        {/* ------------------------- */}
                         {podeDefinirTickets && (
                           <IconButton
                             onClick={() => handleDefinirTickets(ev)}
@@ -288,11 +323,7 @@ export default function EventosPage() {
                         }}
                       >
                         <Typography color="textSecondary">
-                          {ev.dataEvento instanceof Date
-                            ? ev.dataEvento.toLocaleDateString("pt-BR")
-                            : new Date(ev.dataEvento).toLocaleDateString(
-                                "pt-BR"
-                              )}
+                          {new Date(ev.dataEvento).toLocaleDateString("pt-BR")}
                         </Typography>
                         <Typography color="textSecondary">
                           Capacidade: {ev.capacidadeTotal}
@@ -300,6 +331,76 @@ export default function EventosPage() {
                       </Box>
                     </Box>
                   </ListItem>
+
+                  {/* --- CONTEÚDO EXPANSÍVEL (TABELA DE TICKETS) --- */}
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                    <Box sx={{ pl: 4, pr: 2, pb: 2 }}>
+                      <Box
+                        display="flex"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        mb={2}
+                      >
+                        <Typography variant="h6">Tickets do Evento</Typography>
+                        <TextField
+                          select
+                          label="Filtrar por Status"
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          size="small"
+                          sx={{ minWidth: 150 }}
+                        >
+                          <MenuItem value="Todos">Todos</MenuItem>
+                          {Object.values(statusTicket).map((status) => (
+                            <MenuItem key={status} value={status}>
+                              {status}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Box>
+
+                      {filteredTickets.length > 0 ? (
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Participante</TableCell>
+                              <TableCell>Status</TableCell>
+                              <TableCell>Data Emissão</TableCell>
+                              <TableCell>Data Uso</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {filteredTickets.map((t) => (
+                              <TableRow key={t.id}>
+                                <TableCell>
+                                  {t.participante?.nomeCompleto ?? "N/A"}
+                                </TableCell>
+                                <TableCell>{t.status}</TableCell>
+                                <TableCell>
+                                  {new Date(t.dataEmissao).toLocaleDateString(
+                                    "pt-BR"
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {t.dataUso
+                                    ? new Date(t.dataUso).toLocaleDateString(
+                                        "pt-BR"
+                                      )
+                                    : "Não utilizado"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Nenhum ticket encontrado para este evento com o filtro
+                          selecionado.
+                        </Typography>
+                      )}
+                    </Box>
+                  </Collapse>
+                  {/* ------------------------------------------------ */}
 
                   {i !== eventos.length - 1 && <Divider />}
                 </React.Fragment>
@@ -367,7 +468,6 @@ export default function EventosPage() {
                   value={field.value}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, "");
-
                     return field.onChange(Number(val));
                   }}
                   error={!!fieldState.error}
