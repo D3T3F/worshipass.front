@@ -12,7 +12,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import LunchDiningOutlinedIcon from "@mui/icons-material/LunchDiningOutlined";
 
 interface Evento {
@@ -22,13 +21,12 @@ interface Evento {
   descricao?: string;
 }
 
-type jobType = "Participantes" | "Eventos" | "Tickets" | "Lanches";
+type jobType = "Participantes" | "Eventos" | "Lanches";
 
 function JobPaper({ type }: { type: jobType }) {
   const icons = {
     Participantes: <PeopleAltOutlinedIcon color="primary" />,
     Eventos: <CalendarTodayOutlinedIcon color="primary" />,
-    Tickets: <ConfirmationNumberOutlinedIcon color="primary" />,
     Lanches: <LunchDiningOutlinedIcon color="primary" />,
   };
 
@@ -167,10 +165,9 @@ export default function MainPage() {
           Tarefas
         </Typography>
 
-        <Box sx={{ display: "flex", gap: 2 }}>
+        <Box sx={{ display: "flex", gap: 2, justifyContent: "space-around" }}>
           <JobPaper type="Participantes" />
           <JobPaper type="Eventos" />
-          <JobPaper type="Tickets" />
           <JobPaper type="Lanches" />
         </Box>
       </Box>

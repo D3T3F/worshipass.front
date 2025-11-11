@@ -16,7 +16,6 @@ import {
 } from "@mui/material";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import LunchDiningOutlinedIcon from "@mui/icons-material/LunchDiningOutlined";
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -52,10 +51,6 @@ export default function Header() {
       icon: <CalendarTodayOutlinedIcon sx={{ mr: 1 }} />,
     },
     {
-      label: "Tickets",
-      icon: <ConfirmationNumberOutlinedIcon sx={{ mr: 1 }} />,
-    },
-    {
       label: "Lanches",
       icon: <LunchDiningOutlinedIcon sx={{ mr: 1 }} />,
     },
@@ -77,7 +72,6 @@ export default function Header() {
           flexWrap: "wrap",
         }}
       >
-        {/* LOGO */}
         <Box
           sx={{
             display: "flex",

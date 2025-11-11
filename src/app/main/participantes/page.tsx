@@ -30,15 +30,12 @@ import AddIcon from "@mui/icons-material/Add";
 import * as z from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import findParticipantes from "@/app/api/participantes/find";
 import { useSnackbar } from "@/contexts/SnackbarContext";
-import createParticipante from "@/app/api/participantes/create";
 import { Participante } from "@/models/participante.model";
 import { InputDefault } from "@/components/inputs/InputDefault";
-import updateParticipante from "@/app/api/participantes/update";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import deleteParticipante from "@/app/api/participantes/delete";
 import DeleteIcon from '@mui/icons-material/Delete';
+import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
 
 const participantSchema = z.object({
   nome: z
@@ -105,7 +102,7 @@ export default function ParticipantesPage() {
   const load = async () => {
     setLoading(true);
 
-    const result = await findParticipantes();
+    const result = await findAll<Participante>("participante");
 
     if (!result.success) showSnackbar("Erro ao buscar participantes", "error");
 
@@ -145,7 +142,7 @@ export default function ParticipantesPage() {
   };
 
   async function removeParticipante(participanteId: number) {
-    const result = await deleteParticipante(participanteId);
+    const result = await deleteById(participanteId, "participante");
 
     result.success
       ? showSnackbar("Participante excluido", "success")
@@ -181,8 +178,8 @@ export default function ParticipantesPage() {
     };
 
     const result = editing
-      ? await updateParticipante(newUser)
-      : await createParticipante(newUser);
+      ? await update(newUser)
+      : await createOne(newUser);
 
     result.success
       ? showSnackbar(

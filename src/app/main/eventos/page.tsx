@@ -15,14 +15,14 @@ import {
   Stack,
   Paper,
   Divider,
-  Collapse, // Importado
-  Table, // Importado
-  TableBody, // Importado
-  TableCell, // Importado
-  TableHead, // Importado
-  TableRow, // Importado
-  TextField, // Importado para o filtro
-  MenuItem, // Importado para o filtro
+  Collapse,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  MenuItem,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -33,16 +33,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import { InputDefault } from "@/components/inputs/InputDefault";
 import { Evento } from "@/models/evento.model";
-import findEventos from "@/app/api/eventos/find";
-import { updateEvento, generateTickets } from "@/app/api/eventos/update";
-import createEvento from "@/app/api/eventos/create";
+import { generateTickets } from "@/app/api/eventos/update";
 import LocationPinIcon from "@mui/icons-material/LocationPin";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import deleteEvento from "@/app/api/eventos/delete";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess"; // Importado
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"; // Importado
-import { statusTicket } from "@/models/ticket.model"; // Importado
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { statusTicket } from "@/models/ticket.model";
+import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
 
 const eventSchema = z.object({
   nome: z.string().min(1, "Nome obrigatório"),
@@ -60,11 +58,8 @@ export default function EventosPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editing, setEditing] = useState<Evento | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // --- NOVOS ESTADOS ---
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
-  // --------------------
 
   const [openConfirm, setOpenConfirm] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState("");
@@ -92,11 +87,14 @@ export default function EventosPage() {
 
   const load = async () => {
     setLoading(true);
-    const result = await findEventos();
+
+    const result = await findAll<Evento>("evento");
+    
     setLoading(false);
 
     if (!result.success) {
       showSnackbar("Erro ao buscar eventos", "error");
+
       return;
     }
 
@@ -107,33 +105,35 @@ export default function EventosPage() {
     load();
   }, []);
 
-  // --- NOVA FUNÇÃO ---
   const handleToggleTickets = (id: number) => {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
-  // --------------------
 
   const handleOpenCreate = () => {
     setEditing(null);
+
     reset({
       nome: "",
       dataEvento: new Date(),
       capacidadeTotal: 0,
       local: "",
     });
+    
     setOpenDialog(true);
   };
 
   const handleOpenEdit = (evento: Evento) => {
     setEditing(evento);
+
     reset({
       nome: evento.nome,
       dataEvento: new Date(evento.dataEvento),
       capacidadeTotal: evento.capacidadeTotal,
       local: evento.local,
     });
+    
     setOpenDialog(true);
   };
 
@@ -151,9 +151,7 @@ export default function EventosPage() {
       tickets: editing?.tickets ?? [],
     };
 
-    const result = editing
-      ? await updateEvento(newEvent)
-      : await createEvento(newEvent);
+    const result = editing ? await update(newEvent) : await createOne(newEvent);
 
     if (!result.success) {
       showSnackbar("Erro ao salvar evento", "error");
@@ -164,9 +162,11 @@ export default function EventosPage() {
       setEventos((prev) =>
         prev.map((e) => (e.id === editing.id ? newEvent : e))
       );
+
       showSnackbar("Evento atualizado!", "success");
     } else {
       setEventos((prev) => [...prev, newEvent]);
+      
       showSnackbar("Evento criado!", "success");
     }
 
@@ -186,6 +186,7 @@ export default function EventosPage() {
 
   const handleDefinirTickets = (evento: Evento) => {
     setConfirmTitle("Gerar tickets");
+    
     setConfirmMessage(
       `Tem certeza que deseja gerar todos os tickets para o evento "${evento.nome}"?`
     );
@@ -198,7 +199,7 @@ export default function EventosPage() {
   };
 
   async function removeEvento(participanteId: number) {
-    const result = await deleteEvento(participanteId);
+    const result = await deleteById(participanteId, "evento");
 
     result.success
       ? showSnackbar("Evento excluido", "success")
@@ -257,13 +258,11 @@ export default function EventosPage() {
                 (!ev.tickets || ev.tickets.length === 0) &&
                 new Date(ev.dataEvento) >= hoje;
 
-              // --- LÓGICA DE FILTRO ---
               const isExpanded = expandedIds.includes(ev.id);
               const filteredTickets =
                 ev.tickets?.filter(
                   (t) => statusFilter === "Todos" || t.status === statusFilter
                 ) ?? [];
-              // -------------------------
 
               return (
                 <React.Fragment key={ev.id}>
