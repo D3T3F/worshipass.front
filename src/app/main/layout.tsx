@@ -2,10 +2,10 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "../api/auth/[...nextauth]/authOptions";
 import { jwtVerify } from "@/utils/jwe";
-import { signOut } from "next-auth/react";
+import TokenGuard from "@/components/TokenGuard";
 import Header from "@/components/Header";
 
-export default async function MainLayout({
+export default async function LoginLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -18,12 +18,11 @@ export default async function MainLayout({
 
   const validated = await jwtVerify(token);
 
-  if (validated.error) await signOut({ callbackUrl: "/login" });
-
   return (
-    <main>
+    <>
       <Header />
+      <TokenGuard error={validated.error ?? null} />
       {children}
-    </main>
+    </>
   );
 }

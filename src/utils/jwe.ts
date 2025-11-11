@@ -11,10 +11,14 @@ export async function jwtVerify(
 ): Promise<JWTPayload | { error: string }> {
   const key = getBase64Key();
 
-  const { payload } = await jwtDecrypt(token, key);
+  try {
+    const { payload } = await jwtDecrypt(token, key);
 
-  if (payload.exp && Date.now() >= payload.exp * 1000)
+    if (payload.exp && Date.now() >= payload.exp * 1000)
+      return { error: "Sessão expirada." };
+
+    return payload;
+  } catch (e) {
     return { error: "Sessão expirada." };
-
-  return payload;
+  }
 }
