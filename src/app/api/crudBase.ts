@@ -2,19 +2,17 @@ import { AxiosError } from "axios";
 import apiClient from "./axios.client";
 import Result from "@/models/result.model";
 import { capitalizeFirstLetter } from "@/utils/string";
-import { Ticket } from "@/models/ticket.model";
 
 type Models = "participante" | "evento" | "ticket" | "lanche";
 
 export async function createOne<T>(
-  data: T
+  data: T,
+  type: Models
 ): Promise<Result<{ message: string }>> {
   let result: Result<{ message: string }> = {
     success: false,
     data: { message: "" },
   };
-
-  const type = (typeof data).toLowerCase();
 
   try {
     const response = await apiClient.post(`/${type}s`, data);
@@ -54,7 +52,7 @@ export async function deleteById(
     success: false,
     data: { message: "" },
   };
-  
+
   try {
     const response = await apiClient.delete(`/${type}s/${id}`);
 
@@ -106,41 +104,40 @@ export async function findAll<T>(type: Models): Promise<Result<T[]>> {
 }
 
 export async function update<T>(
-  data: T
+  data: T,
+  type: Models
 ): Promise<Result<{ message: string }>> {
   let result: Result<{ message: string }> = {
-	success: false,
-	data: { message: "" },
+    success: false,
+    data: { message: "" },
   };
 
-  const type = (typeof data).toLowerCase();
-
   try {
-	const response = await apiClient.put(`/${type}s/${(data as any).id}`, data);
+    const response = await apiClient.put(`/${type}s/${(data as any).id}`, data);
 
-	result = {
-	  success: response.status === 200,
-	  data: {
-		message:
-		  response.status === 200
-			? `${capitalizeFirstLetter(type)} editato com sucesso!`
-			: `Erro ao editar ${type}`,
-	  },
-	};
+    result = {
+      success: response.status === 200,
+      data: {
+        message:
+          response.status === 200
+            ? `${capitalizeFirstLetter(type)} editato com sucesso!`
+            : `Erro ao editar ${type}`,
+      },
+    };
 
-	return result;
+    return result;
   } catch (e: AxiosError | any) {
-	result = {
-	  success: false,
-	  data: {
-		message:
-		  e?.response?.data?.message ??
-		  e?.response?.data ??
-		  e?.message ??
-		  `Erro ao editar ${type}`,
-	  },
-	};
+    result = {
+      success: false,
+      data: {
+        message:
+          e?.response?.data?.message ??
+          e?.response?.data ??
+          e?.message ??
+          `Erro ao editar ${type}`,
+      },
+    };
 
-	return result;
+    return result;
   }
 }

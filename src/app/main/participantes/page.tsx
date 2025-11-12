@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -10,13 +11,8 @@ import {
   ListItemText,
   IconButton,
   Collapse,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Paper,
   Divider,
-  Stack,
   Table,
   TableHead,
   TableRow,
@@ -28,11 +24,10 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import * as z from "zod";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import { Participante } from "@/models/participante.model";
-import { InputDefault } from "@/components/inputs/InputDefault";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
@@ -86,20 +81,6 @@ export default function ParticipantesPage() {
 
   const { showSnackbar } = useSnackbar();
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { isSubmitting },
-  } = useForm<ParticipantForm>({
-    resolver: zodResolver(participantSchema),
-    defaultValues: {
-      nome: "",
-      email: "",
-      telefone: "",
-    },
-  });
-
   const load = async () => {
     setLoading(true);
 
@@ -124,21 +105,12 @@ export default function ParticipantesPage() {
 
   const handleOpenCreate = () => {
     setEditing(null);
-    reset({
-      nome: "",
-      email: "",
-      telefone: "",
-    });
+
     setOpenDialog(true);
   };
 
   const handleOpenEdit = (p: Participante) => {
     setEditing(p);
-    reset({
-      nome: p.nomeCompleto,
-      email: p.email,
-      telefone: p.telefone,
-    });
     setOpenDialog(true);
   };
 
@@ -165,7 +137,7 @@ export default function ParticipantesPage() {
     setOpenConfirm(true);
   };
 
-  const onSubmit = handleSubmit(async (data) => {
+  const onSubmit = async (data: ParticipantForm) => {
     const newUser: Participante = {
       id: editing
         ? editing.id
@@ -178,7 +150,9 @@ export default function ParticipantesPage() {
       tickets: editing?.tickets ?? [],
     };
 
-    const result = editing ? await update(newUser) : await createOne(newUser);
+    const result = editing
+      ? await update(newUser, "participante")
+      : await createOne(newUser, "participante");
 
     result.success
       ? showSnackbar(
@@ -214,7 +188,7 @@ export default function ParticipantesPage() {
 
     setParticipants((prev) => [...prev, newUser]);
     setOpenDialog(false);
-  });
+  };
 
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
@@ -325,6 +299,7 @@ export default function ParticipantesPage() {
       </Paper>
 
       <FormDialog
+        key={editing?.id ?? "new"}
         schema={participantSchema}
         inputs={[
           { name: "nome", label: "Nome" },
@@ -333,7 +308,15 @@ export default function ParticipantesPage() {
         ]}
         isOpen={openDialog}
         isEditing={!!editing}
-        initialValues={editing as any}
+        initialValues={
+          editing
+            ? {
+                nome: editing.nomeCompleto,
+                email: editing.email,
+                telefone: editing.telefone,
+              }
+            : undefined
+        }
         onClose={() => {
           setOpenDialog(false);
           setEditing(null);

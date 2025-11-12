@@ -89,7 +89,7 @@ export default function EventosPage() {
     setLoading(true);
 
     const result = await findAll<Evento>("evento");
-    
+
     setLoading(false);
 
     if (!result.success) {
@@ -120,7 +120,7 @@ export default function EventosPage() {
       capacidadeTotal: 0,
       local: "",
     });
-    
+
     setOpenDialog(true);
   };
 
@@ -133,7 +133,7 @@ export default function EventosPage() {
       capacidadeTotal: evento.capacidadeTotal,
       local: evento.local,
     });
-    
+
     setOpenDialog(true);
   };
 
@@ -151,7 +151,9 @@ export default function EventosPage() {
       tickets: editing?.tickets ?? [],
     };
 
-    const result = editing ? await update(newEvent) : await createOne(newEvent);
+    const result = editing
+      ? await update(newEvent, "evento")
+      : await createOne(newEvent, "evento");
 
     if (!result.success) {
       showSnackbar("Erro ao salvar evento", "error");
@@ -166,7 +168,7 @@ export default function EventosPage() {
       showSnackbar("Evento atualizado!", "success");
     } else {
       setEventos((prev) => [...prev, newEvent]);
-      
+
       showSnackbar("Evento criado!", "success");
     }
 
@@ -269,11 +271,9 @@ export default function EventosPage() {
                   <ListItem
                     secondaryAction={
                       <>
-                        {/* --- BOTÃO DE EXPANDIR --- */}
                         <IconButton onClick={() => handleToggleTickets(ev.id)}>
                           {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                         </IconButton>
-                        {/* ------------------------- */}
                         {podeDefinirTickets && (
                           <IconButton
                             onClick={() => handleDefinirTickets(ev)}
@@ -331,7 +331,6 @@ export default function EventosPage() {
                     </Box>
                   </ListItem>
 
-                  {/* --- CONTEÚDO EXPANSÍVEL (TABELA DE TICKETS) --- */}
                   <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                     <Box sx={{ pl: 4, pr: 2, pb: 2 }}>
                       <Box
@@ -399,7 +398,6 @@ export default function EventosPage() {
                       )}
                     </Box>
                   </Collapse>
-                  {/* ------------------------------------------------ */}
 
                   {i !== eventos.length - 1 && <Divider />}
                 </React.Fragment>

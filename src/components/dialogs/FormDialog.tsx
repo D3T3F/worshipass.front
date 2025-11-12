@@ -9,7 +9,7 @@ import {
   Stack,
 } from "@mui/material";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, Resolver, useForm } from "react-hook-form";
 import * as z from "zod";
 import { InputDefault } from "@/components/inputs/InputDefault";
 
@@ -20,19 +20,19 @@ type InputField = {
   mask?: (value: string) => string;
 };
 
-interface FormDialogProps<T extends z.ZodTypeAny> {
+interface FormDialogProps<T extends z.ZodType<any, any, any>> {
   schema: T;
   inputs: InputField[];
   isOpen: boolean;
   isEditing?: boolean;
   initialValues?: z.infer<T>;
   onClose: () => void;
-  onSubmit: (data: any) => Promise<void> | void;
+  onSubmit: (data: z.infer<T>) => Promise<void> | void;
   title?: string;
   isSubmitting?: boolean;
 }
 
-export function FormDialog<T extends z.ZodTypeAny>({
+export function FormDialog<T extends z.ZodType<any, any, any>>({
   schema,
   inputs,
   isOpen,
@@ -43,22 +43,20 @@ export function FormDialog<T extends z.ZodTypeAny>({
   title,
   isSubmitting = false,
 }: FormDialogProps<T>) {
-  const {
-    handleSubmit,
-    control,
-    reset,
-  } = useForm({
-    resolver: zodResolver(schema as any),
-    defaultValues: initialValues ?? {},
+  const { handleSubmit, control, reset } = useForm<z.infer<T>>({
+    resolver: zodResolver(schema) as Resolver<z.infer<T>>,
+    defaultValues: initialValues ?? ({} as z.infer<T>),
   });
 
   React.useEffect(() => {
-    reset(initialValues ?? {});
+    reset(initialValues ?? ({} as z.infer<T>));
   }, [initialValues, reset]);
 
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{title || (isEditing ? "Editar" : "Novo registro")}</DialogTitle>
+      <DialogTitle>
+        {title || (isEditing ? "Editar" : "Novo registro")}
+      </DialogTitle>
       <DialogContent>
         <Stack spacing={3} mt={1}>
           {inputs.map((input) => (
