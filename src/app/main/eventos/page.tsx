@@ -8,11 +8,6 @@ import {
   List,
   ListItem,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Stack,
   Paper,
   Divider,
   Collapse,
@@ -28,10 +23,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import * as z from "zod";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useSnackbar } from "@/contexts/SnackbarContext";
-import { InputDefault } from "@/components/inputs/InputDefault";
 import { Evento } from "@/models/evento.model";
 import { generateTickets } from "@/app/api/eventos/update";
 import LocationPinIcon from "@mui/icons-material/LocationPin";
@@ -41,14 +33,15 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { statusTicket } from "@/models/ticket.model";
 import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
+import { FormDialog } from "@/components/dialogs/FormDialog";
 
 const eventSchema = z.object({
-  nome: z.string().min(1, "Nome obrigatório"),
-  dataEvento: z.date({ message: "Data obrigatória" }),
+  nome: z.string("Nome obrigatório").min(1, "Nome obrigatório"),
+  dataEvento: z.coerce.date("Data obrigatória"),
   capacidadeTotal: z
-    .number({ message: "Capacidade deve ser número" })
+    .number("Capacidade deve ser número")
     .min(1, "Capacidade obrigatória"),
-  local: z.string().min(1, "Local obrigatório"),
+  local: z.string("Local obrigatório").min(1, "Local obrigatório"),
 });
 
 type EventForm = z.infer<typeof eventSchema>;
@@ -69,21 +62,6 @@ export default function EventosPage() {
   );
 
   const { showSnackbar } = useSnackbar();
-
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { isSubmitting },
-  } = useForm<EventForm>({
-    resolver: zodResolver(eventSchema),
-    defaultValues: {
-      nome: "",
-      dataEvento: new Date(),
-      capacidadeTotal: 0,
-      local: "",
-    },
-  });
 
   const load = async () => {
     setLoading(true);
@@ -114,30 +92,16 @@ export default function EventosPage() {
   const handleOpenCreate = () => {
     setEditing(null);
 
-    reset({
-      nome: "",
-      dataEvento: new Date(),
-      capacidadeTotal: 0,
-      local: "",
-    });
-
     setOpenDialog(true);
   };
 
   const handleOpenEdit = (evento: Evento) => {
     setEditing(evento);
 
-    reset({
-      nome: evento.nome,
-      dataEvento: new Date(evento.dataEvento),
-      capacidadeTotal: evento.capacidadeTotal,
-      local: evento.local,
-    });
-
     setOpenDialog(true);
   };
 
-  const onSubmit = handleSubmit(async (data) => {
+  const onSubmit = async (data: EventForm) => {
     const newEvent: Evento = {
       id: editing
         ? editing.id
@@ -174,7 +138,7 @@ export default function EventosPage() {
 
     setOpenDialog(false);
     setEditing(null);
-  });
+  };
 
   async function generateEventTickets(eventoId: number) {
     const result = await generateTickets(eventoId);
@@ -412,99 +376,28 @@ export default function EventosPage() {
         )}
       </Paper>
 
-      <Dialog
-        open={openDialog}
+      <FormDialog
+        key={editing?.id ?? "new"}
+        schema={eventSchema}
+        inputs={[
+          { name: "nome", label: "Nome" },
+          { name: "dataEvento", label: "Data do evento", type: "date" },
+          {
+            name: "capacidadeTotal",
+            label: "Capacidade total",
+            type: "number",
+          },
+          { name: "local", label: "Local" },
+        ]}
+        isOpen={openDialog}
+        isEditing={!!editing}
+        initialValues={editing ? editing : undefined}
         onClose={() => {
           setOpenDialog(false);
           setEditing(null);
         }}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>{editing ? "Editar evento" : "Novo evento"}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3} mt={1}>
-            <Controller
-              name="nome"
-              control={control}
-              render={({ field, fieldState }) => (
-                <InputDefault
-                  title="Nome"
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                />
-              )}
-            />
-            <Controller
-              name="dataEvento"
-              control={control}
-              render={({ field, fieldState }) => (
-                <InputDefault
-                  type="date"
-                  title="Data do evento"
-                  value={
-                    field.value
-                      ? new Date(field.value).toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) => field.onChange(new Date(e.target.value))}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                />
-              )}
-            />
-            <Controller
-              name="capacidadeTotal"
-              control={control}
-              render={({ field, fieldState }) => (
-                <InputDefault
-                  type="text"
-                  title="Capacidade total"
-                  value={field.value}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "");
-                    return field.onChange(Number(val));
-                  }}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                />
-              )}
-            />
-            <Controller
-              name="local"
-              control={control}
-              render={({ field, fieldState }) => (
-                <InputDefault
-                  title="Local"
-                  value={field.value}
-                  onChange={(e) => field.onChange(e.target.value)}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                />
-              )}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenDialog(false);
-              setEditing(null);
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={onSubmit}
-            variant="contained"
-            disabled={isSubmitting}
-          >
-            Salvar
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onSubmit={onSubmit}
+      />
     </Container>
   );
 }

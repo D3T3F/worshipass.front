@@ -24,8 +24,6 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import * as z from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import { Participante } from "@/models/participante.model";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
@@ -35,7 +33,7 @@ import { FormDialog } from "@/components/dialogs/FormDialog";
 
 const participantSchema = z.object({
   nome: z
-    .string()
+    .string("Nome obrigatório")
     .min(1, "Nome obrigatório")
     .regex(
       /^([A-ZÁÉÍÓÚÃÕÂÊÎÔÛ][a-záéíóúãõâêîôûç]+)(\s[A-ZÁÉÍÓÚÃÕÂÊÎÔÛ][a-záéíóúãõâêîôûç]+)*$/,
@@ -45,7 +43,7 @@ const participantSchema = z.object({
   email: z.email("E-mail inválido").min(1, "E-mail obrigatório"),
 
   telefone: z
-    .string()
+    .string("Telefone obrigatório")
     .regex(/^\(\d{2}\)\s?\d{4,5}-\d{4}$/, "Telefone inválido"),
 });
 type ParticipantForm = z.infer<typeof participantSchema>;

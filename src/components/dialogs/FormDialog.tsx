@@ -52,6 +52,12 @@ export function FormDialog<T extends z.ZodType<any, any, any>>({
     reset(initialValues ?? ({} as z.infer<T>));
   }, [initialValues, reset]);
 
+  const formatDateForInput = (date: Date | string): string => {
+    if (!date) return new Date().toISOString().split("T")[0];
+
+    return new Date(date)?.toISOString()?.split("T")?.[0] ?? date;
+  };
+
   return (
     <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>
@@ -67,19 +73,29 @@ export function FormDialog<T extends z.ZodType<any, any, any>>({
               render={({ field, fieldState }) => (
                 <InputDefault
                   title={input.label}
-                  type={input.type || "text"}
+                  type={input.type == "number" ? "text" : input.type || "text"}
                   value={
                     input.type === "date" && field.value
-                      ? new Date(field.value).toISOString().split("T")[0]
+                      ? formatDateForInput(field.value)
                       : field.value ?? ""
                   }
                   onChange={(e) => {
                     let val = e.target.value;
                     if (input.mask) val = input.mask(val);
-                    if (input.type === "date") field.onChange(new Date(val));
-                    else if (input.type === "number")
-                      field.onChange(Number(val.replace(/\D/g, "")));
-                    else field.onChange(val);
+
+                    switch (input.type) {
+                      case "date":
+                        field.onChange(new Date(val));
+                        break;
+
+                      case "number":
+                        field.onChange(Number(val.replace(/\D/g, "")));
+                        break;
+
+                      default:
+                        field.onChange(val);
+                        break;
+                    }
                   }}
                   error={!!fieldState.error}
                   errorMessage={fieldState.error?.message}
