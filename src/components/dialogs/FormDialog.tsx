@@ -20,6 +20,7 @@ type InputField = {
   type?: string;
   mask?: (value: string) => string;
   options?: { value: any; label: string }[];
+  disabled?: boolean;
 };
 
 interface FormDialogProps<T extends z.ZodType<any, any, any>> {
@@ -72,10 +73,12 @@ export function FormDialog<T extends z.ZodType<any, any, any>>({
               key={input.name}
               name={input.name as any}
               control={control}
+              disabled={input.disabled}
               render={({ field, fieldState }) => (
                 <>
                   {input.type === "select" ? (
                     <SelectDefault
+                      disabled={input.disabled}
                       title={input.label}
                       value={field.value}
                       onChange={(e) => {
@@ -88,6 +91,7 @@ export function FormDialog<T extends z.ZodType<any, any, any>>({
                     />
                   ) : (
                     <InputDefault
+                      disabled={input.disabled}
                       title={input.label}
                       type={
                         input.type == "number" ? "text" : input.type || "text"

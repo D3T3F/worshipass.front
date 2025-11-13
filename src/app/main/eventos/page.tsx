@@ -49,6 +49,8 @@ const eventSchema = z.object({
 const ticketSchema = z.object({
   status: z.string().min(1, "Status é obrigatório"),
   dataUso: z.coerce.date().optional().nullable(),
+  participante: z.string("Selecione o participante"),
+  lanche: z.string("Selecione o lanche"),
 });
 
 type EventForm = z.infer<typeof eventSchema>;
@@ -183,8 +185,11 @@ export default function EventosPage() {
 
     const updatedTicket: Ticket = {
       ...editingTicket,
-      status: data.status,
+      status: data.status ?? editingTicket.status,
       dataUso: data.dataUso ?? editingTicket.dataUso,
+      participante:
+        participantes?.find((p) => p.id.toString() === data.participante) ??
+        editingTicket.participante,
     };
 
     const result = await update(updatedTicket, "ticket");
@@ -466,25 +471,38 @@ export default function EventosPage() {
               value: s,
               label: s,
             })),
+            disabled: true,
           },
-          { name: "dataUso", label: "Data de Uso", type: "date" },
+          {
+            name: "dataUso",
+            label: "Data de Uso",
+            type: "date",
+            disabled: true,
+          },
           {
             name: "participante",
             label: "Participante",
             type: "select",
-            options: participantes?.map((p) => ({
-              value: p.id,
-              label: p.nomeCompleto,
-            })) ?? [{ value: "", label: "" }],
+            options:
+              participantes?.length > 0
+                ? participantes.map((p) => ({
+                    value: p.id.toString(),
+                    label: p.nomeCompleto,
+                  }))
+                : [{ value: "", label: "" }],
           },
           {
             name: "lanche",
             label: "Lanche",
             type: "select",
-            options: lanches?.map((l) => ({
-              value: l.id,
-              label: l.nome,
-            })) ?? [{ value: "", label: "" }],
+            options:
+              lanches?.length > 0
+                ? lanches.map((l) => ({
+                    value: l.id.toString(),
+                    label: l.nome,
+                  }))
+                : [{ value: "", label: "" }],
+            disabled: !editingTicket?.participante,
           },
         ]}
         isOpen={openTicketDialog}
@@ -496,6 +514,8 @@ export default function EventosPage() {
                 dataUso: editingTicket.dataUso
                   ? new Date(editingTicket.dataUso)
                   : null,
+                participante: editingTicket?.participante?.id.toString() ?? "",
+                lanche: editingTicket?.participante?.id.toString() ?? "",
               }
             : undefined
         }
