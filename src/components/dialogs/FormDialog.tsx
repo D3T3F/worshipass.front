@@ -12,12 +12,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, Resolver, useForm } from "react-hook-form";
 import * as z from "zod";
 import { InputDefault } from "@/components/inputs/InputDefault";
+import { SelectDefault } from "../inputs/SelectDefault";
 
 type InputField = {
   name: string;
   label: string;
   type?: string;
   mask?: (value: string) => string;
+  options?: { value: any; label: string }[];
 };
 
 interface FormDialogProps<T extends z.ZodType<any, any, any>> {
@@ -71,35 +73,53 @@ export function FormDialog<T extends z.ZodType<any, any, any>>({
               name={input.name as any}
               control={control}
               render={({ field, fieldState }) => (
-                <InputDefault
-                  title={input.label}
-                  type={input.type == "number" ? "text" : input.type || "text"}
-                  value={
-                    input.type === "date" && field.value
-                      ? formatDateForInput(field.value)
-                      : field.value ?? ""
-                  }
-                  onChange={(e) => {
-                    let val = e.target.value;
-                    if (input.mask) val = input.mask(val);
-
-                    switch (input.type) {
-                      case "date":
-                        field.onChange(new Date(val));
-                        break;
-
-                      case "number":
-                        field.onChange(Number(val.replace(/\D/g, "")));
-                        break;
-
-                      default:
+                <>
+                  {input.type === "select" ? (
+                    <SelectDefault
+                      title={input.label}
+                      value={field.value}
+                      onChange={(e) => {
+                        let val = e.target.value;
                         field.onChange(val);
-                        break;
-                    }
-                  }}
-                  error={!!fieldState.error}
-                  errorMessage={fieldState.error?.message}
-                />
+                      }}
+                      options={input.options || []}
+                      error={!!fieldState.error}
+                      errorMessage={fieldState.error?.message}
+                    />
+                  ) : (
+                    <InputDefault
+                      title={input.label}
+                      type={
+                        input.type == "number" ? "text" : input.type || "text"
+                      }
+                      value={
+                        input.type === "date" && field.value
+                          ? formatDateForInput(field.value)
+                          : field.value ?? ""
+                      }
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (input.mask) val = input.mask(val);
+
+                        switch (input.type) {
+                          case "date":
+                            field.onChange(new Date(val));
+                            break;
+
+                          case "number":
+                            field.onChange(Number(val.replace(/\D/g, "")));
+                            break;
+
+                          default:
+                            field.onChange(val);
+                            break;
+                        }
+                      }}
+                      error={!!fieldState.error}
+                      errorMessage={fieldState.error?.message}
+                    />
+                  )}
+                </>
               )}
             />
           ))}

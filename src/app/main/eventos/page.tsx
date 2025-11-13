@@ -25,16 +25,17 @@ import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumb
 import * as z from "zod";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import { Evento } from "@/models/evento.model";
-import { generateTickets } from "@/app/api/eventos/update";
+import { generateTickets } from "@/app/api/eventos";
 import LocationPinIcon from "@mui/icons-material/LocationPin";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { statusTicket } from "@/models/ticket.model";
+import { Ticket, statusTicket } from "@/models/ticket.model";
 import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
 import { FormDialog } from "@/components/dialogs/FormDialog";
 
+// Schema para o formulário de Evento
 const eventSchema = z.object({
   nome: z.string("Nome obrigatório").min(1, "Nome obrigatório"),
   dataEvento: z.coerce.date("Data obrigatória"),
@@ -44,16 +45,31 @@ const eventSchema = z.object({
   local: z.string("Local obrigatório").min(1, "Local obrigatório"),
 });
 
+// Schema para o formulário de Ticket
+const ticketSchema = z.object({
+  status: z.string().min(1, "Status é obrigatório"),
+  dataUso: z.coerce.date().optional().nullable(),
+  // Adicione outros campos do ticket que você deseja editar aqui
+});
+
 type EventForm = z.infer<typeof eventSchema>;
+type TicketForm = z.infer<typeof ticketSchema>;
 
 export default function EventosPage() {
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editing, setEditing] = useState<Evento | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
 
+  // Estados para o dialog de Evento
+  const [openEventoDialog, setOpenEventoDialog] = useState(false);
+  const [editingEvento, setEditingEvento] = useState<Evento | null>(null);
+
+  // Estados para o dialog de Ticket
+  const [openTicketDialog, setOpenTicketDialog] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+
+  // Estados para o dialog de confirmação
   const [openConfirm, setOpenConfirm] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmMessage, setConfirmMessage] = useState("");
@@ -65,17 +81,13 @@ export default function EventosPage() {
 
   const load = async () => {
     setLoading(true);
-
     const result = await findAll<Evento>("evento");
-
     setLoading(false);
 
     if (!result.success) {
       showSnackbar("Erro ao buscar eventos", "error");
-
       return;
     }
-
     setEventos(result.data);
   };
 
@@ -89,22 +101,21 @@ export default function EventosPage() {
     );
   };
 
-  const handleOpenCreate = () => {
-    setEditing(null);
-
-    setOpenDialog(true);
+  // --- Funções de CRUD para Evento ---
+  const handleOpenCreateEvento = () => {
+    setEditingEvento(null);
+    setOpenEventoDialog(true);
   };
 
-  const handleOpenEdit = (evento: Evento) => {
-    setEditing(evento);
-
-    setOpenDialog(true);
+  const handleOpenEditEvento = (evento: Evento) => {
+    setEditingEvento(evento);
+    setOpenEventoDialog(true);
   };
 
-  const onSubmit = async (data: EventForm) => {
+  const onEventoSubmit = async (data: EventForm) => {
     const newEvent: Evento = {
-      id: editing
-        ? editing.id
+      id: editingEvento
+        ? editingEvento.id
         : eventos.length
         ? Math.max(...eventos.map((e) => e.id)) + 1
         : 1,
@@ -112,10 +123,10 @@ export default function EventosPage() {
       dataEvento: data.dataEvento,
       capacidadeTotal: data.capacidadeTotal,
       local: data.local,
-      tickets: editing?.tickets ?? [],
+      tickets: editingEvento?.tickets ?? [],
     };
 
-    const result = editing
+    const result = editingEvento
       ? await update(newEvent, "evento")
       : await createOne(newEvent, "evento");
 
@@ -124,64 +135,77 @@ export default function EventosPage() {
       return;
     }
 
-    if (editing) {
-      setEventos((prev) =>
-        prev.map((e) => (e.id === editing.id ? newEvent : e))
-      );
-
-      showSnackbar("Evento atualizado!", "success");
-    } else {
-      setEventos((prev) => [...prev, newEvent]);
-
-      showSnackbar("Evento criado!", "success");
-    }
-
-    setOpenDialog(false);
-    setEditing(null);
+    showSnackbar(
+      editingEvento ? "Evento atualizado!" : "Evento criado!",
+      "success"
+    );
+    setOpenEventoDialog(false);
+    setEditingEvento(null);
+    load(); // Recarrega os dados para garantir consistência
   };
 
+  // --- Funções de CRUD para Ticket ---
+  const handleOpenEditTicket = (ticket: Ticket) => {
+    setEditingTicket(ticket);
+    setOpenTicketDialog(true);
+  };
+
+  const onTicketSubmit = async (data: TicketForm) => {
+    if (!editingTicket) return;
+
+    const updatedTicket: Ticket = {
+      ...editingTicket,
+      status: data.status,
+      dataUso: data.dataUso ?? editingTicket.dataUso,
+    };
+
+    const result = await update(updatedTicket, "ticket"); // Assumindo que a rota é 'ticket'
+
+    if (!result.success) {
+      showSnackbar("Erro ao atualizar ticket", "error");
+      return;
+    }
+
+    showSnackbar("Ticket atualizado com sucesso!", "success");
+    setOpenTicketDialog(false);
+    setEditingTicket(null);
+    load(); // Recarrega todos os eventos para refletir a mudança no ticket
+  };
+
+  // --- Funções de Ações (Gerar tickets, Deletar) ---
   async function generateEventTickets(eventoId: number) {
     const result = await generateTickets(eventoId);
-
     result.success
       ? showSnackbar("Tickets gerados com sucesso", "success")
       : showSnackbar("Erro ao gerar tickets do evento", "error");
-
     if (result.success) load();
   }
 
   const handleDefinirTickets = (evento: Evento) => {
     setConfirmTitle("Gerar tickets");
-
     setConfirmMessage(
       `Tem certeza que deseja gerar todos os tickets para o evento "${evento.nome}"?`
     );
-
     setConfirmCallback(() => async () => {
       await generateEventTickets(evento.id);
     });
-
     setOpenConfirm(true);
   };
 
-  async function removeEvento(participanteId: number) {
-    const result = await deleteById(participanteId, "evento");
-
+  async function removeEvento(eventoId: number) {
+    const result = await deleteById(eventoId, "evento");
     result.success
       ? showSnackbar("Evento excluido", "success")
       : showSnackbar("Erro ao excluir evento", "error");
-
     if (result.success) load();
   }
 
-  const handleDelete = (e: Evento) => {
+  const handleDeleteEvento = (e: Evento) => {
     setConfirmTitle("Excluir evento");
     setConfirmMessage(`Tem certeza que deseja excluir o evento "${e.nome}"?`);
-
     setConfirmCallback(() => async () => {
       await removeEvento(e.id);
     });
-
     setOpenConfirm(true);
   };
 
@@ -205,7 +229,7 @@ export default function EventosPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={handleOpenCreate}
+          onClick={handleOpenCreateEvento}
         >
           Adicionar evento
         </Button>
@@ -223,7 +247,6 @@ export default function EventosPage() {
               const podeDefinirTickets =
                 (!ev.tickets || ev.tickets.length === 0) &&
                 new Date(ev.dataEvento) >= hoje;
-
               const isExpanded = expandedIds.includes(ev.id);
               const filteredTickets =
                 ev.tickets?.filter(
@@ -246,10 +269,10 @@ export default function EventosPage() {
                             <ConfirmationNumberOutlinedIcon />
                           </IconButton>
                         )}
-                        <IconButton onClick={() => handleOpenEdit(ev)}>
+                        <IconButton onClick={() => handleOpenEditEvento(ev)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton onClick={() => handleDelete(ev)}>
+                        <IconButton onClick={() => handleDeleteEvento(ev)}>
                           <DeleteIcon />
                         </IconButton>
                       </>
@@ -333,7 +356,12 @@ export default function EventosPage() {
                           </TableHead>
                           <TableBody>
                             {filteredTickets.map((t) => (
-                              <TableRow key={t.id}>
+                              <TableRow
+                                key={t.id}
+                                hover
+                                onClick={() => handleOpenEditTicket(t)}
+                                sx={{ cursor: "pointer" }}
+                              >
                                 <TableCell>
                                   {t.participante?.nomeCompleto ?? "N/A"}
                                 </TableCell>
@@ -375,9 +403,9 @@ export default function EventosPage() {
           </List>
         )}
       </Paper>
-
       <FormDialog
-        key={editing?.id ?? "new"}
+        key={`evento-${editingEvento?.id ?? "new"}`}
+        title={editingEvento ? "Editar Evento" : "Criar Novo Evento"}
         schema={eventSchema}
         inputs={[
           { name: "nome", label: "Nome" },
@@ -389,14 +417,48 @@ export default function EventosPage() {
           },
           { name: "local", label: "Local" },
         ]}
-        isOpen={openDialog}
-        isEditing={!!editing}
-        initialValues={editing ? editing : undefined}
+        isOpen={openEventoDialog}
+        isEditing={!!editingEvento}
+        initialValues={editingEvento ? editingEvento : undefined}
         onClose={() => {
-          setOpenDialog(false);
-          setEditing(null);
+          setOpenEventoDialog(false);
+          setEditingEvento(null);
         }}
-        onSubmit={onSubmit}
+        onSubmit={onEventoSubmit}
+      />
+      <FormDialog
+        key={`ticket-${editingTicket?.id}`}
+        title="Editar Ticket"
+        schema={ticketSchema}
+        inputs={[
+          {
+            name: "status",
+            label: "Status",
+            type: "select",
+            options: Object.values(statusTicket).map((s) => ({
+              value: s,
+              label: s,
+            })),
+          },
+          { name: "dataUso", label: "Data de Uso", type: "date" },
+        ]}
+        isOpen={openTicketDialog}
+        isEditing={!!editingTicket}
+        initialValues={
+          editingTicket
+            ? {
+                ...editingTicket,
+                dataUso: editingTicket.dataUso
+                  ? new Date(editingTicket.dataUso)
+                  : null,
+              }
+            : undefined
+        }
+        onClose={() => {
+          setOpenTicketDialog(false);
+          setEditingTicket(null);
+        }}
+        onSubmit={onTicketSubmit}
       />
     </Container>
   );

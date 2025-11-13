@@ -1,15 +1,20 @@
 import { AxiosError } from "axios";
-import apiClient from "../axios.client";
+import apiClient from "./axios.client";
 import Result from "@/models/result.model";
+import { Evento } from "@/models/evento.model";
 
-export async function generateTickets(eventoId: number) {
+export async function generateTickets(
+  eventoId: number
+): Promise<Result<{ message: string }>> {
   let result: Result<{ message: string }> = {
     success: false,
     data: { message: "" },
   };
 
   try {
-    const response = await apiClient.get(`/eventos/generateTickets/${eventoId}`);
+    const response = await apiClient.get(
+      `/eventos/generateTickets/${eventoId}`
+    );
 
     result = {
       success: response.status === 204,
@@ -34,6 +39,26 @@ export async function generateTickets(eventoId: number) {
       },
     };
 
+    return result;
+  }
+}
+
+export async function findTodayEvents(): Promise<Result<Evento[]>> {
+  let result: Result<Evento[]> = {
+    success: false,
+    data: [],
+  };
+
+  try {
+    const response = await apiClient.get(`/eventos/hoje`);
+
+    result = {
+      success: true,
+      data: response.data,
+    };
+
+    return result;
+  } catch (e: AxiosError | any) {
     return result;
   }
 }

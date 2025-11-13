@@ -13,13 +13,8 @@ import { useRouter } from "next/navigation";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import LunchDiningOutlinedIcon from "@mui/icons-material/LunchDiningOutlined";
-
-interface Evento {
-  id: number | string;
-  titulo: string;
-  horario?: string;
-  descricao?: string;
-}
+import { findTodayEvents } from "../api/eventos";
+import { Evento } from "@/models/evento.model";
 
 type jobType = "Participantes" | "Eventos" | "Lanches";
 
@@ -84,8 +79,8 @@ export default function MainPage() {
 
   async function fetchEventos() {
     try {
-      // const resp = await api.get("/eventos/hoje");
-      // setEventos(resp.data || []);
+      const result = await findTodayEvents();
+      setEventos(result.data);
     } catch (e) {
       console.error(e);
       setEventos([]);
@@ -142,16 +137,11 @@ export default function MainPage() {
             {eventos.map((ev) => (
               <Paper key={ev.id} sx={{ p: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  {ev.titulo}
+                  {ev.nome}
                 </Typography>
-                {ev.horario && (
-                  <Typography variant="body2" color="text.secondary">
-                    {ev.horario}
-                  </Typography>
-                )}
-                {ev.descricao && (
+                {ev.local && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    {ev.descricao}
+                    {ev.local}
                   </Typography>
                 )}
               </Paper>

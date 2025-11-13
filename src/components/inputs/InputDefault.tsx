@@ -32,6 +32,7 @@ export const InputDefault = forwardRef<HTMLInputElement, Props>(
           {...rest}
           color={variant === "secondary" ? "secondary" : "primary"}
           inputRef={ref}
+          
           sx={{ width: width, height: height, borderRadius: "12px" }}
         />
         {errorMessage && (
