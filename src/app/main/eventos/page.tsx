@@ -34,8 +34,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Ticket, statusTicket } from "@/models/ticket.model";
 import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
 import { FormDialog } from "@/components/dialogs/FormDialog";
+import { Lanche } from "@/models/lanche.model";
+import { Participante } from "@/models/participante.model";
 
-// Schema para o formulário de Evento
 const eventSchema = z.object({
   nome: z.string("Nome obrigatório").min(1, "Nome obrigatório"),
   dataEvento: z.coerce.date("Data obrigatória"),
@@ -45,11 +46,9 @@ const eventSchema = z.object({
   local: z.string("Local obrigatório").min(1, "Local obrigatório"),
 });
 
-// Schema para o formulário de Ticket
 const ticketSchema = z.object({
   status: z.string().min(1, "Status é obrigatório"),
   dataUso: z.coerce.date().optional().nullable(),
-  // Adicione outros campos do ticket que você deseja editar aqui
 });
 
 type EventForm = z.infer<typeof eventSchema>;
@@ -57,19 +56,19 @@ type TicketForm = z.infer<typeof ticketSchema>;
 
 export default function EventosPage() {
   const [eventos, setEventos] = useState<Evento[]>([]);
+  const [lanches, setLanches] = useState<Lanche[]>([]);
+  const [participantes, setParticipantes] = useState<Participante[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState<number[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
 
-  // Estados para o dialog de Evento
   const [openEventoDialog, setOpenEventoDialog] = useState(false);
   const [editingEvento, setEditingEvento] = useState<Evento | null>(null);
 
-  // Estados para o dialog de Ticket
   const [openTicketDialog, setOpenTicketDialog] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
 
-  // Estados para o dialog de confirmação
   const [openConfirm, setOpenConfirm] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState("");
   const [confirmMessage, setConfirmMessage] = useState("");
@@ -79,16 +78,47 @@ export default function EventosPage() {
 
   const { showSnackbar } = useSnackbar();
 
-  const load = async () => {
-    setLoading(true);
+  async function loadEventos() {
     const result = await findAll<Evento>("evento");
-    setLoading(false);
 
     if (!result.success) {
       showSnackbar("Erro ao buscar eventos", "error");
       return;
     }
+
     setEventos(result.data);
+  }
+
+  async function loadParticipantes() {
+    const result = await findAll<Participante>("participante");
+
+    if (!result.success) {
+      showSnackbar("Erro ao buscar participantes", "error");
+      return;
+    }
+
+    setParticipantes(result.data);
+  }
+
+  async function loadLanches() {
+    const result = await findAll<Lanche>("lanche");
+
+    if (!result.success) {
+      showSnackbar("Erro ao buscar lanches", "error");
+      return;
+    }
+
+    setLanches(result.data);
+  }
+
+  const load = async () => {
+    setLoading(true);
+
+    loadParticipantes();
+    loadLanches();
+    await loadEventos();
+
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -101,7 +131,6 @@ export default function EventosPage() {
     );
   };
 
-  // --- Funções de CRUD para Evento ---
   const handleOpenCreateEvento = () => {
     setEditingEvento(null);
     setOpenEventoDialog(true);
@@ -141,10 +170,9 @@ export default function EventosPage() {
     );
     setOpenEventoDialog(false);
     setEditingEvento(null);
-    load(); // Recarrega os dados para garantir consistência
+    load();
   };
 
-  // --- Funções de CRUD para Ticket ---
   const handleOpenEditTicket = (ticket: Ticket) => {
     setEditingTicket(ticket);
     setOpenTicketDialog(true);
@@ -159,7 +187,7 @@ export default function EventosPage() {
       dataUso: data.dataUso ?? editingTicket.dataUso,
     };
 
-    const result = await update(updatedTicket, "ticket"); // Assumindo que a rota é 'ticket'
+    const result = await update(updatedTicket, "ticket");
 
     if (!result.success) {
       showSnackbar("Erro ao atualizar ticket", "error");
@@ -169,10 +197,9 @@ export default function EventosPage() {
     showSnackbar("Ticket atualizado com sucesso!", "success");
     setOpenTicketDialog(false);
     setEditingTicket(null);
-    load(); // Recarrega todos os eventos para refletir a mudança no ticket
+    load();
   };
 
-  // --- Funções de Ações (Gerar tickets, Deletar) ---
   async function generateEventTickets(eventoId: number) {
     const result = await generateTickets(eventoId);
     result.success
@@ -441,6 +468,24 @@ export default function EventosPage() {
             })),
           },
           { name: "dataUso", label: "Data de Uso", type: "date" },
+          {
+            name: "participante",
+            label: "Participante",
+            type: "select",
+            options: participantes?.map((p) => ({
+              value: p.id,
+              label: p.nomeCompleto,
+            })) ?? [{ value: "", label: "" }],
+          },
+          {
+            name: "lanche",
+            label: "Lanche",
+            type: "select",
+            options: lanches?.map((l) => ({
+              value: l.id,
+              label: l.nome,
+            })) ?? [{ value: "", label: "" }],
+          },
         ]}
         isOpen={openTicketDialog}
         isEditing={!!editingTicket}

@@ -3,7 +3,6 @@ import {
   Typography,
   Select,
   MenuItem,
-  OutlinedInput,
   SelectProps,
   useTheme,
 } from "@mui/material";
@@ -43,18 +42,15 @@ export const SelectDefault = forwardRef<HTMLInputElement, InputSelectProps>(
 
         <Select
           {...rest}
-          input={
-            <OutlinedInput
-              inputRef={ref}
-              color={variant === "secondary" ? "secondary" : "primary"}
-              sx={{
-                width,
-                height,
-                borderRadius: "12px",
-                ...(sx || {}),
-              }}
-            />
-          }
+          inputRef={ref}
+          variant="outlined"
+          color={variant === "secondary" ? "secondary" : "primary"}
+          sx={{
+            width,
+            height,
+            borderRadius: "12px",
+            ...(sx || {}),
+          }}
           MenuProps={{
             PaperProps: {
               sx: { borderRadius: "12px" },
