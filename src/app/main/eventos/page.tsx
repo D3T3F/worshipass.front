@@ -294,7 +294,6 @@ export default function EventosPage() {
           Adicionar evento
         </Button>
       </Box>
-
       <Paper variant="outlined">
         {loading ? (
           <Box p={2}>
@@ -500,6 +499,7 @@ export default function EventosPage() {
           </List>
         )}
       </Paper>
+      <Box height={20}/>
       <FormDialog
         key={`evento-${editingEvento?.id ?? "new"}`}
         title={editingEvento ? "Editar Evento" : "Criar Novo Evento"}

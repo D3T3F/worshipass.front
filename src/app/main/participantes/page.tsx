@@ -298,6 +298,8 @@ export default function ParticipantesPage() {
         )}
       </Paper>
 
+      <Box height={20} />
+
       <FormDialog
         key={editing?.id ?? "new"}
         schema={participantSchema}
