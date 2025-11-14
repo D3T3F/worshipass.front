@@ -269,7 +269,9 @@ export default function ParticipantesPage() {
                               <TableRow key={t.id}>
                                 <TableCell>{t.evento?.nome}</TableCell>
                                 <TableCell>
-                                  {t.evento?.dataEvento?.toUTCString()}
+                                  {new Date(
+                                    t.evento?.dataEvento as Date
+                                  )?.toLocaleDateString("pt-BR")}
                                 </TableCell>
                                 <TableCell>{t.status}</TableCell>
                               </TableRow>

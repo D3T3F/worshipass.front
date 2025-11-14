@@ -25,7 +25,7 @@ import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumb
 import * as z from "zod";
 import { useSnackbar } from "@/contexts/SnackbarContext";
 import { Evento } from "@/models/evento.model";
-import { generateTickets } from "@/app/api/eventos";
+import { generateTickets, setTicketsUsed } from "@/app/api/eventos";
 import LocationPinIcon from "@mui/icons-material/LocationPin";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -36,6 +36,8 @@ import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
 import { FormDialog } from "@/components/dialogs/FormDialog";
 import { Lanche } from "@/models/lanche.model";
 import { Participante } from "@/models/participante.model";
+import { onlyThisFieldFilled } from "@/utils/object";
+import { EventAvailable } from "@mui/icons-material";
 
 const eventSchema = z.object({
   nome: z.string("Nome obrigatório").min(1, "Nome obrigatório"),
@@ -175,13 +177,16 @@ export default function EventosPage() {
     load();
   };
 
-  const handleOpenEditTicket = (ticket: Ticket) => {
-    setEditingTicket(ticket);
+  const handleOpenEditTicket = (ticket: Ticket, evento: Evento) => {
+    setEditingTicket({ ...ticket, evento });
     setOpenTicketDialog(true);
   };
 
   const onTicketSubmit = async (data: TicketForm) => {
     if (!editingTicket) return;
+
+    if (onlyThisFieldFilled(data, "participante"))
+      data.status = statusTicket.reservado;
 
     const updatedTicket: Ticket = {
       ...editingTicket,
@@ -241,6 +246,29 @@ export default function EventosPage() {
     setOpenConfirm(true);
   };
 
+  async function setTickets(eventoId: number) {
+    const result = await setTicketsUsed(eventoId);
+
+    result.success
+      ? showSnackbar("Tickets gerados com sucesso", "success")
+      : showSnackbar("Erro ao gerar tickets do evento", "error");
+
+    if (result.success) load();
+  }
+
+  async function setAllTicketsUsed(evento: Evento) {
+    setConfirmTitle(
+      `Tem certeza que deseja definir todos os tickets para o evento "${evento.nome}"?`
+    );
+    setConfirmMessage(
+      `Ao clicar em confirmar, todos os tickets que possuam usuários vinculados serão definidos como "Usados" e os que não possuem como "Cancelados".`
+    );
+    setConfirmCallback(() => async () => {
+      await setTickets(evento.id);
+    });
+    setOpenConfirm(true);
+  }
+
   return (
     <Container sx={{ mt: 4, mb: 4 }}>
       <ConfirmDialog
@@ -276,10 +304,30 @@ export default function EventosPage() {
           <List>
             {eventos?.map((ev, i) => {
               const hoje = new Date();
+
+              const dataEvento = new Date(ev.dataEvento);
+
+              const mesmoDia =
+                dataEvento.getDate() === hoje.getDate() &&
+                dataEvento.getMonth() === hoje.getMonth() &&
+                dataEvento.getFullYear() === hoje.getFullYear();
+
               const podeDefinirTickets =
-                (!ev.tickets || ev.tickets.length === 0) &&
-                new Date(ev.dataEvento) >= hoje;
+                (!ev.tickets || ev.tickets.length === 0) && dataEvento >= hoje;
+
+              const statusDisponiveis: string[] = [
+                statusTicket.disponivel,
+                statusTicket.reservado,
+              ];
+
+              const podeSetarStatus =
+                ev.tickets &&
+                ev.tickets.length > 0 &&
+                mesmoDia &&
+                statusDisponiveis.includes(ev.tickets[0].status);
+
               const isExpanded = expandedIds.includes(ev.id);
+
               const filteredTickets =
                 ev.tickets?.filter(
                   (t) => statusFilter === "Todos" || t.status === statusFilter
@@ -358,7 +406,24 @@ export default function EventosPage() {
                         alignItems="center"
                         mb={2}
                       >
-                        <Typography variant="h6">Tickets do Evento</Typography>
+                        <Box
+                          display="flex"
+                          justifyContent="center"
+                          alignItems="center"
+                          gap={2}
+                        >
+                          <Typography variant="h6">
+                            Tickets do Evento
+                          </Typography>
+                          <IconButton
+                            color="primary"
+                            disabled={!podeSetarStatus}
+                            title="Define evento como concluído e define tickets como usados/cancelados"
+                            onClick={() => setAllTicketsUsed(ev)}
+                          >
+                            <EventAvailable />
+                          </IconButton>
+                        </Box>
                         <TextField
                           select
                           label="Filtrar por Status"
@@ -391,7 +456,7 @@ export default function EventosPage() {
                               <TableRow
                                 key={t.id}
                                 hover
-                                onClick={() => handleOpenEditTicket(t)}
+                                onClick={() => handleOpenEditTicket(t, ev)}
                                 sx={{ cursor: "pointer" }}
                               >
                                 <TableCell>
@@ -485,11 +550,22 @@ export default function EventosPage() {
             type: "select",
             options:
               participantes?.length > 0
-                ? participantes.map((p) => ({
-                    value: p.id.toString(),
-                    label: p.nomeCompleto,
-                  }))
+                ? participantes
+                    .filter((p) => {
+                      const tickets = p.tickets;
+
+                      return (
+                        !tickets?.find(
+                          (t) => t?.evento?.id === editingTicket?.evento?.id
+                        ) || tickets.find((t) => t.id === editingTicket?.id)
+                      );
+                    })
+                    .map((p) => ({
+                      value: p.id.toString(),
+                      label: p.nomeCompleto,
+                    }))
                 : [{ value: "", label: "" }],
+            disabled: editingTicket?.status !== statusTicket.disponivel,
           },
           {
             name: "lanche",
@@ -502,7 +578,10 @@ export default function EventosPage() {
                     label: l.nome,
                   }))
                 : [{ value: "", label: "" }],
-            disabled: !editingTicket?.participante,
+            disabled:
+              !editingTicket?.participante ||
+              !!editingTicket?.resgateLanche ||
+              editingTicket.status !== statusTicket.usado,
           },
         ]}
         isOpen={openTicketDialog}
