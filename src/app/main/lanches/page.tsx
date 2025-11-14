@@ -12,6 +12,8 @@ import {
   IconButton,
   Paper,
   Divider,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -22,6 +24,7 @@ import { Lanche } from "@/models/lanche.model";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { createOne, deleteById, findAll, update } from "@/app/api/crudBase";
 import { FormDialog } from "@/components/dialogs/FormDialog";
+import { formatDescription } from "@/utils/string";
 
 const lancheSchema = z.object({
   nome: z.string("Nome obrigatório").min(1, "Nome obrigatório"),
@@ -45,6 +48,10 @@ export default function LanchesPage() {
   const [confirmCallback, setConfirmCallback] = useState<() => Promise<void>>(
     async () => {}
   );
+
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { showSnackbar } = useSnackbar();
 
@@ -197,7 +204,7 @@ export default function LanchesPage() {
                     primary={lanche.nome}
                     secondary={
                       <>
-                        <span>{lanche.descricao}</span>
+                        <span>{formatDescription(lanche.descricao, isMobile)}</span>
                         <span style={{ marginLeft: 16 }}>
                           Quantidade: {lanche.quantidadeDisponivel}
                         </span>

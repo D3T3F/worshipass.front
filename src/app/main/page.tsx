@@ -7,6 +7,7 @@ import {
   Paper,
   CircularProgress,
   useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -27,12 +28,16 @@ function JobPaper({ type }: { type: jobType }) {
 
   const router = useRouter();
 
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   return (
     <Paper
       onClick={() => router.push(`/main/${type.toLowerCase()}`)}
       sx={{
         p: 3,
-        width: 300,
+        width: isMobile ? "100%" : 300,
         transition: "all 0.3s ease",
         cursor: "pointer",
         "&:hover": {
@@ -66,8 +71,11 @@ export default function MainPage() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const router = useRouter();
   const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
   const fullName = session?.user?.name || "Usuário";
 
@@ -93,7 +101,7 @@ export default function MainPage() {
     <Box
       sx={{
         py: 3,
-        px: 20,
+        px: isMobile ? 0 : isTablet ? 5 : 20,
         display: "flex",
         flexDirection: "column",
         gap: 3,
@@ -155,7 +163,14 @@ export default function MainPage() {
           Tarefas
         </Typography>
 
-        <Box sx={{ display: "flex", gap: 2, justifyContent: "space-around" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            gap: 2,
+            justifyContent: "space-around",
+          }}
+        >
           <JobPaper type="Participantes" />
           <JobPaper type="Eventos" />
           <JobPaper type="Lanches" />

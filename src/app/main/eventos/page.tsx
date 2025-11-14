@@ -18,6 +18,8 @@ import {
   TableRow,
   TextField,
   MenuItem,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -39,6 +41,7 @@ import { Participante } from "@/models/participante.model";
 import { onlyThisFieldFilled } from "@/utils/object";
 import { EventAvailable } from "@mui/icons-material";
 import { reedemLanche } from "@/app/api/tickets";
+import { formatDescription } from "@/utils/string";
 
 const eventSchema = z.object({
   nome: z.string("Nome obrigatório").min(1, "Nome obrigatório"),
@@ -80,6 +83,10 @@ export default function EventosPage() {
   const [confirmCallback, setConfirmCallback] = useState<() => Promise<void>>(
     async () => {}
   );
+
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { showSnackbar } = useSnackbar();
 
@@ -389,7 +396,11 @@ export default function EventosPage() {
                       }}
                     >
                       <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 6 }}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: isMobile ? 2 : 6,
+                        }}
                       >
                         <Typography variant="h6" color="primary">
                           {ev.nome}
@@ -401,7 +412,8 @@ export default function EventosPage() {
                             gap: 1,
                           }}
                         >
-                          <LocationPinIcon fontSize="small" /> {ev.local}
+                          <LocationPinIcon fontSize="small" />{" "}
+                          {formatDescription(ev.local, isMobile)}
                         </Box>
                       </Box>
                       <Box
@@ -624,7 +636,8 @@ export default function EventosPage() {
                   ? new Date(editingTicket.dataUso)
                   : null,
                 participante: editingTicket?.participante?.id.toString() ?? "",
-                lanche: editingTicket?.resgateLanche?.lanche?.id.toString() ?? "",
+                lanche:
+                  editingTicket?.resgateLanche?.lanche?.id.toString() ?? "",
               }
             : undefined
         }
