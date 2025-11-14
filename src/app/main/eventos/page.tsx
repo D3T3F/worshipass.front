@@ -38,6 +38,7 @@ import { Lanche } from "@/models/lanche.model";
 import { Participante } from "@/models/participante.model";
 import { onlyThisFieldFilled } from "@/utils/object";
 import { EventAvailable } from "@mui/icons-material";
+import { reedemLanche } from "@/app/api/tickets";
 
 const eventSchema = z.object({
   nome: z.string("Nome obrigatório").min(1, "Nome obrigatório"),
@@ -182,11 +183,30 @@ export default function EventosPage() {
     setOpenTicketDialog(true);
   };
 
+  async function reedemTicketLanche(lancheId: number) {
+    const result = await reedemLanche(editingTicket?.id as number, lancheId);
+
+    result.success
+      ? showSnackbar("Lanche resgatado com sucesso", "success")
+      : showSnackbar("Erro ao resgatar lanche", "error");
+
+    setOpenTicketDialog(false);
+    setEditingTicket(null);
+
+    if (result.success) load();
+  }
+
   const onTicketSubmit = async (data: TicketForm) => {
     if (!editingTicket) return;
 
     if (onlyThisFieldFilled(data, "participante"))
       data.status = statusTicket.reservado;
+
+    if (data.lanche && !editingTicket.resgateLanche) {
+      await reedemTicketLanche(parseInt(data.lanche));
+
+      return;
+    }
 
     const updatedTicket: Ticket = {
       ...editingTicket,
@@ -201,6 +221,10 @@ export default function EventosPage() {
 
     if (!result.success) {
       showSnackbar("Erro ao atualizar ticket", "error");
+
+      setOpenTicketDialog(false);
+      setEditingTicket(null);
+
       return;
     }
 
@@ -499,7 +523,7 @@ export default function EventosPage() {
           </List>
         )}
       </Paper>
-      <Box height={20}/>
+      <Box height={20} />
       <FormDialog
         key={`evento-${editingEvento?.id ?? "new"}`}
         title={editingEvento ? "Editar Evento" : "Criar Novo Evento"}
@@ -573,10 +597,16 @@ export default function EventosPage() {
             type: "select",
             options:
               lanches?.length > 0
-                ? lanches.map((l) => ({
-                    value: l.id.toString(),
-                    label: l.nome,
-                  }))
+                ? lanches
+                    .filter(
+                      (l) =>
+                        l.quantidadeDisponivel > 0 ||
+                        editingTicket?.resgateLanche?.lanche?.id === l.id
+                    )
+                    .map((l) => ({
+                      value: l.id.toString(),
+                      label: l.nome,
+                    }))
                 : [{ value: "", label: "" }],
             disabled:
               !editingTicket?.participante ||
@@ -594,7 +624,7 @@ export default function EventosPage() {
                   ? new Date(editingTicket.dataUso)
                   : null,
                 participante: editingTicket?.participante?.id.toString() ?? "",
-                lanche: editingTicket?.participante?.id.toString() ?? "",
+                lanche: editingTicket?.resgateLanche?.lanche?.id.toString() ?? "",
               }
             : undefined
         }
